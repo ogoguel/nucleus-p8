@@ -7,7 +7,7 @@ DATA_BUFFER_LENGTH = #512   ; block size
 CURRENT_PATH = #$0280
 original
 
-    mx %11
+    MX %11
 
     STA $C000
     STA $C00C 
@@ -42,29 +42,67 @@ Hardware2GS
     LDA $C019
     BPL ]vbl
 
-
     STZ $C034
     LDA #$F0
     STA $C022
 
-    clc
-    xce
-    rep #$30
+    CLC
+    XCE
+    REP #$30
     LDA #himem-original
-    ldx #$2000
-    ldy #original
-    mvn 0,0
-    jmp start
+    LDX #$2000
+    LDY #original
+    MVN 0,0
+    JMP STArt
 
-start
+STArt
 
-    mx %11
+    MX %11
 
-  
-    clc
-    xce
-    sep #$30
+    SEC
+    XCE
+    SEP #$30
 
+; Fix prefix (https://retrocomputing.STAckexchange.com/questions/17922/apple-ii-prodos-zero-length-prefix-AND-mli-calls/17979)
+ 
+]loop
+    JSR    MLI
+op_c7
+    DFB  $c7
+    DW  c7_parms
+     BCC no_error_c7
+     JMP open_error
+no_error_c7
+    LDX    $300
+    BNE    done_prefix
+    LDA    $bf30
+    STA    c5_parms+1
+    JSR    MLI
+    DFB  $c5
+    DW  c5_parms
+    BCC no_error_c5
+    JMP open_error
+no_error_c5
+    LDA    $301
+    AND    #$0f
+    TAX
+    INX
+    STX    $300
+    LDA    #$2f
+    STA    $301
+    DEC    op_c7
+    BNE    ]loop
+
+c7_parms
+    DFB  1
+   DW  $300
+
+c5_parms
+    DFB 2
+    DFB  0
+    DW $301
+
+done_prefix
     LDY CURRENT_PATH
 ]loop
     LDA CURRENT_PATH,Y
@@ -79,16 +117,16 @@ start
     BNE ]loop
     INY
     LDA #'D'
-    sta full_path,y
+    STA full_path,y
     iny
-    lda #'A'
-    sta full_path,Y
+    LDA #'A'
+    STA full_path,Y
     iny
-    lda #'T'
-    sta full_path,Y
+    LDA #'T'
+    STA full_path,Y
     LDA #'A'
     INY
-    sta full_path,Y
+    STA full_path,Y
     sty full_path
     LDA #>data_buffer
     CLC
@@ -98,15 +136,15 @@ start
     JSR MLI
     DFB OPEN
     DW open_params
-    BNE open_error
+    BCS open_error
 
     LDA open_ref
     STA read_ref
 
-    clc
-    xce
-    rep #$30
-    mx %00
+    CLC
+    XCE
+    REP #$30
+    MX %00
     LDX #0
 ]loop
     PHX
@@ -120,14 +158,14 @@ start
     LDA files+2,x
     JSR load
 
-    plx
+    PLX
     cpx #0
-    bne not_first
+    BNE not_first
     
-    phx
-    sep #$30
+    PHX
+    SEP #$30
  
-    jsr #$0A00
+    JSR #$0A00
  
 ]vbl
     LDA $C019
@@ -136,24 +174,24 @@ start
     LDA $C019
     BPL ]vbl
 
-    lda #$C1
-    sta $C029
+    LDA #$C1
+    STA $C029
  
-    jsr fade_in
+    JSR fade_in
  
-    sep #$30
-    mx %11
+    SEP #$30
+    MX %11
 
     LDA #$1E
     STA $C035
 
-    clc
-    xce
-    rep #$30
-    plx
+    CLC
+    XCE
+    REP #$30
+    PLX
     
 not_first
-    inx
+    INX
     BRA ]loop
 end_load
 
@@ -173,20 +211,20 @@ end_load
     LDA #$07F0
     STA $96CC
     
-    sec
-    xce
-    sep #$30
-    mx %11  
+    SEC
+    XCE
+    SEP #$30
+    MX %11  
     JMP #$1000
 
 open_error
 read_error
-    clc
-    xce
-    sep #$30
-    lda #$41
-    sta $C029
-    rep #$30
+    CLC
+    XCE
+    SEP #$30
+    LDA #$41
+    STA $C029
+    REP #$30
     PEA #$DEAD
     PEA $0
     PEA msg_read_error
@@ -194,12 +232,8 @@ read_error
     JSL $E10000
 msg_read_error STR "Cannot find NUCLEUS.DATA : "  
 
-
-    
-
-
 fade_in
-    mx %11
+    MX %11
     SEP #$30
 ]loop
 ]vbl
@@ -210,7 +244,7 @@ fade_in
     BPL ]vbl
     REP #$20
     LDAL $E19E1E
-    clc
+    CLC
     ADC #$0111
     STAL $E19E1E
     SEP #$20
@@ -219,46 +253,46 @@ fade_in
     RTS
 
 load    ; A = NB, Y=mem
-     mx %11
+     MX %11
     SEP #$30
    
     STA mem_dst+1
     XBA
-    STA mvn_patch+1
+    STA MVN_patch+1
 
     REP #$30
-     mx %00
+     MX %00
 ]loop
     PHY
-    sec
-    xce
-    sep #$30
-     mx %11
+    SEC
+    XCE
+    SEP #$30
+     MX %11
     JSR MLI
     DFB READ
     DW read_params
-    BNE read_error
+    BCS read_error
   
-    clc
-    xce
-    rep #$30
-    mx %00
+    CLC
+    XCE
+    REP #$30
+    MX %00
     LDA #DATA_BUFFER_LENGTH-1
     LDX #data_buffer
     LDY mem_dst
 
     phb
-mvn_patch
+MVN_patch
     MVN 0,0
     plb
     LDA mem_dst
-    clc
+    CLC
     ADC #DATA_BUFFER_LENGTH
-    sta mem_dst
+    STA mem_dst
 
     PLY
     DEY
-    bne ]loop
+    BNE ]loop
     RTS
    
 mem_dst DW 0
@@ -300,9 +334,6 @@ files
     DW #11 ; #0
     DW #$0060
     DW #0 ; END
-
-;path STR "/NUCLEUSP8/NUCLEUS.DATA"
-
     
 read_params DB 4
 read_ref DB 0
