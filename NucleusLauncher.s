@@ -42,6 +42,9 @@ Hardware2GS
     LDA $C019
     BPL ]vbl
 
+    LDA #$41    ; fix  https://github.com/ogoguel/nucleus-p8/issues/1
+    STA $C029
+
     STZ $C034
     LDA #$F0
     STA $C022
